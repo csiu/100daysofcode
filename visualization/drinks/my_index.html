@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body {
+  font: 10px sans-serif;
+  shape-rendering: crispEdges;
+}
+
+.day {
+  fill: #fff;
+  stroke: #ccc;
+}
+
+.month {
+  fill: none;
+  stroke: #000;
+  stroke-width: 2px;
+}
+
+/*Specify colors for 1,2,3 drinks*/
+.RdYlGn .q0-11{fill:rgb(254,224,210)}
+.RdYlGn .q1-11{fill:rgb(252,146,114)}
+.RdYlGn .q2-11{fill:rgb(222,45,38)}
+
+</style>
+<body>
+<!-- <script src="/Users/csiu/lib/javascript/d3/d3.min.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script>
+var width = 960,
+    height = 136,
+    cellSize = 17; // cell size
+
+// Specify functions? to format data
+// e.g. 1 decimal place + % using percent(d) by 'var percent = d3.format(".1%")'
+var format = d3.time.format("%Y-%m-%d");
+
+// 'Quantize' scales are similar to linear scales, except...
+// they use a discrete rather than continuous range
+// Continuous input domain is divided into uniform segments based...
+// on the number of values in the output range
+//
+// For picking which color to use
+// I specify 3 colors - so domain and range up to 3
+var color = d3.scale.quantize()
+    .domain([1,3])
+    .range(d3.range(3).map(function(d) { return "q" + d + "-11"; }));
+
+// select body element + all svg
+// .data to bind data
+// .enter().append() to contain placeholders to bring to reality
+var svg = d3.select("body").selectAll("svg")
+    .data(d3.range(2013, 2018))
+  .enter().append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("class", "RdYlGn")
+  .append("g")
+    .attr("transform", "translate(" + ((width - cellSize * 53) / 2) + "," + (height - cellSize * 7 - 1) + ")");
+
+// add year
+svg.append("text")
+    .attr("transform", "translate(-6," + cellSize * 3.5 + ")rotate(-90)")
+    .style("text-anchor", "middle")
+    .text(function(d) { return d; });
+
+// select all .day class
+// bind 'd3.time.days(start, stop[, step])' data
+// add 'rect' element with class="day"
+// '.datum' to binds data directly into an element to inject without computing a join
+// - Gets or sets the bound data for each selected element
+// - Unlike selection.data, does not compute a join
+// - (and thus does not compute enter and exit selections)
+var rect = svg.selectAll(".day")
+    .data(function(d) { return d3.time.days(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
+  .enter().append("rect")
+    .attr("class", "day")
+    .attr("width", cellSize)
+    .attr("height", cellSize)
+    .attr("x", function(d) { return d3.time.weekOfYear(d) * cellSize; })
+    .attr("y", function(d) { return d.getDay() * cellSize; })
+    .datum(format);
+
+// give a title to rect element
+rect.append("title")
+    .text(function(d) { return d; });
+
+// draw borders for class="months" using monthPath function
+svg.selectAll(".month")
+    .data(function(d) { return d3.time.months(new Date(d, 0, 1), new Date(d + 1, 0, 1)); })
+  .enter().append("path")
+    .attr("class", "month")
+    .attr("d", monthPath);
+
+// Add data/parse data using d3.csv(FILE, CALLBACK<?>)
+d3.tsv("my_drinks.tsv", function(error, csv) {
+  if (error) throw error;
+
+  // d3.nest: flat data structure -> nested one
+  // use '.key' as group by
+  // use '.rollup' as summarize
+  var data = d3.nest()
+    .key(function(d) { return d.date; })
+    .rollup(function(d) { return {
+        "n": d.length,
+        "N": d3.max(d, function(d2){ return d2.drink_number })
+      }; })
+    // ?
+    .map(csv);
+
+  // set class 'attr' to specify color of cell
+  // specify hover text 'title'
+  rect.filter(function(d) { return d in data; })
+      .attr("class", function(d) { return "day " + color(data[d]["n"]); })
+    .select("title")
+      .text(function(d) { return d + ": +" + data[d]["n"] +
+        " (" + data[d]["N"] + ")"; });
+});
+
+function monthPath(t0) {
+  var t1 = new Date(t0.getFullYear(), t0.getMonth() + 1, 0),
+      d0 = t0.getDay(), w0 = d3.time.weekOfYear(t0),
+      d1 = t1.getDay(), w1 = d3.time.weekOfYear(t1);
+  // available commands in 'path' element:
+  // - M = moveto
+  // - H = horizontal lineto
+  // - V = vertical lineto
+  // - Z = closepath
+  return "M" + (w0 + 1) * cellSize + "," + d0 * cellSize
+      + "H" + w0 * cellSize + "V" + 7 * cellSize
+      + "H" + w1 * cellSize + "V" + (d1 + 1) * cellSize
+      + "H" + (w1 + 1) * cellSize + "V" + 0
+      + "H" + (w0 + 1) * cellSize + "Z";
+}
+</script>
+</body>
