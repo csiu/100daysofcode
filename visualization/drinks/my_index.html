@@ -27,9 +27,15 @@ body {
 <!-- <script src="/Users/csiu/lib/javascript/d3/d3.min.js"></script> -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 <script>
+var startYear = 2013,
+    endYear = 2018;
+
 var width = 960,
     height = 136,
     cellSize = 17; // cell size
+
+var weekDays = ['Sun', 'Mon','Tue','Wed','Thu','Fri','Sat'],
+    month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // Specify functions? to format data
 // e.g. 1 decimal place + % using percent(d) by 'var percent = d3.format(".1%")'
@@ -50,19 +56,51 @@ var color = d3.scale.quantize()
 // .data to bind data
 // .enter().append() to contain placeholders to bring to reality
 var svg = d3.select("body").selectAll("svg")
-    .data(d3.range(2013, 2018))
+    .data(d3.range(startYear, endYear))
   .enter().append("svg")
     .attr("width", width)
     .attr("height", height)
     .attr("class", "RdYlGn")
   .append("g")
-    .attr("transform", "translate(" + ((width - cellSize * 53) / 2) + "," + (height - cellSize * 7 - 1) + ")");
+    .attr("class", "year-chunk")
+    .attr("transform", "translate(" + (width - cellSize * 53) + "," + (height - cellSize * 7 - 1) + ")");
 
-// add year
+// add year title
 svg.append("text")
-    .attr("transform", "translate(-6," + cellSize * 3.5 + ")rotate(-90)")
+    .attr("transform", "translate(-38," + cellSize * 3.5 + ")rotate(-90)")
+    .style("font-size", "14px")
+    .style("font-weight", "bold")
     .style("text-anchor", "middle")
     .text(function(d) { return d; });
+
+// Add months to each year; select element then append text
+var titlesMonth = svg.selectAll('.year-chunk')
+    .data(month)
+  .enter().append('g')
+    .attr('class', 'titles-month')
+    .attr('transform', function (d, i) {
+      return 'translate(' + (((i+2) * (width/13) )-90) + ',-5)';
+    });
+
+titlesMonth.append('text')
+    .attr('class', function (d,i) { return month[i]; })
+    .style('text-anchor', 'end')
+    .text(function (d,i) { return month[i]; });
+
+// Add days of the week to each year; select element then append text
+var titlesDays = svg.selectAll('.year-chunk')
+    .data(weekDays)
+  .enter().append("g")
+    .attr('class', 'titles-day')
+    .attr('transform', function (d, i) {
+        return 'translate(-5,' + cellSize*(i+.85) + ')';
+    });
+
+titlesDays.append('text')
+    .attr('class', function (d,i) { return weekDays[i]; })
+    .attr('dy', '-.25em')
+    .style('text-anchor', 'end')
+    .text(function (d, i) { return weekDays[i]; });
 
 // select all .day class
 // bind 'd3.time.days(start, stop[, step])' data
@@ -93,7 +131,7 @@ svg.selectAll(".month")
     .attr("d", monthPath);
 
 // Add data/parse data using d3.csv(FILE, CALLBACK<?>)
-d3.tsv("my_drinks.tsv", function(error, csv) {
+d3.tsv("https://gist.githubusercontent.com/csiu/01dc6f9055ae30c6c1d098c5bd42dca7/raw/8e724bf616245af57bcb8c5df4841d6a95269085/my_drinks.tsv", function(error, csv) {
   if (error) throw error;
 
   // d3.nest: flat data structure -> nested one
