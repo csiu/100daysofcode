@@ -1,0 +1,183 @@
+---
+title: "day79"
+author: "csiu"
+date: "May 14, 2017"
+output:
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Still learning Scala, but today I thought I will show something new.
+
+
+```{r message=FALSE}
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(ggplot2)
+```
+
+## Data
+
+http://data.vancouver.ca/datacatalogue/animalInventory.htm
+
+```{r}
+file_source <- "ftp://webftp.vancouver.ca/OpenData/csv/"
+filenames <- c("DeadAnimals.csv", "LostAnimals.csv", "RegisteredAnimals.csv")
+
+# for (f in filenames) {
+#   download.file(url = paste0(file_source, f), destfile = paste0("data/", f))
+# }
+```
+
+## Dead Animals
+
+```{r message=FALSE}
+dat <-
+  sapply(
+    sub("Animals.csv", "", filenames),
+    function(a){
+      readr::read_csv(paste0("data/", a, "Animals.csv"))
+  })
+```
+
+Time frame:
+
+```{r}
+dat[["Dead"]]$DeadAnimalDate %>% range()
+dat[["Dead"]]$DeadAnimalDate %>% {max(.) - min(.)}
+```
+
+```{r}
+dat[["Dead"]] %>%
+  {sprintf("Number of dead animals: %d", nrow(.))}
+```
+
+With 20 data points, it's easy to open the data in excel and look at it.
+First thing I notice is that the majority (19) of dead animals are cats.
+
+```{r}
+ggtitle <- 
+    "Domestic deceased pets picked up by Vancouver City staff"
+subtitle <- sprintf(
+  "%s day time frame (%s to %s); %s animals",
+  dat[["Dead"]]$DeadAnimalDate %>% {max(.) - min(.)},
+  dat[["Dead"]]$DeadAnimalDate %>% min,
+  dat[["Dead"]]$DeadAnimalDate %>% max,
+  dat[["Dead"]] %>% nrow
+  )
+cat_legend <- "
+DSH = Domestic Short-hair
+DLH = Domestic Long-hair
+DMH = Domestic Medium-hair
+NA = Dog
+"
+
+dat[["Dead"]] %>%
+  mutate(
+    cat = sub("Cat -[ ]?", "", CatOther),
+    cat = sub("^(D.*?) -.*", "\\1", cat),
+    cat = sub("Cat (D.*?) -.*", "\\1", cat)
+    ) %>%
+  group_by(cat) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(cat, -count),
+             y = count)) + 
+  geom_bar(stat = "identity") +
+  geom_text(y = 10.4, x = 1.7, label=cat_legend, vjust=1, hjust=0) + 
+  xlab("Cat") +
+  ylab("Dead") +
+  labs(title = ggtitle,
+       subtitle = subtitle)
+```
+
+## Animals that are reported lost
+
+```{r}
+lost_animals <-
+  dat[["Lost"]] %>%
+  filter(State == "Lost") %>%
+  mutate(year = format(Date, "%Y") %>% as.integer())
+```
+
+```{r}
+lost_animals %>%
+  group_by(year) %>%
+  summarise(count = n()) %>%
+  arrange(year) %>%
+  {
+    ggplot(., aes(x = year, y = count)) +
+      geom_point() +
+      geom_line() +
+      scale_x_continuous(breaks = seq(min(.$year), max(.$year), 1)) +
+      theme(panel.grid.minor.x = element_blank()) +
+      labs(title = "Animals reported lost per year")
+  }
+ggsave("/Users/csiu/repo/blog/img/figure/2017-05-14/lost.png", width=7, height=5)
+```
+
+- Data for 2017 is not complete
+- Interesting how there is a dip around 2008 and that no reports were made in 2008. Coincide with recession
+
+
+
+```{r eval=FALSE, include=FALSE}
+### Cleaning up the breed column
+
+lost_animals %>%
+  mutate(
+    Breed = trimws(Breed, which = "both"),
+    
+    # Tidy breed
+    Breed = sub("^\\?+$", "?", Breed),
+    Breed = sub(".*Abyssinian.*|.*Abbysinian.*|.*Abithinian",
+                "cat_Abyssinian", Breed),
+    
+    Breed = ifelse(grepl("parrot", Breed, ignore.case = T),
+                   "parrot", Breed),
+    # Breed = sub("Pitbull|Pit Bull|Pittbull|pitbull|Pitt Bull",
+    #             "dog_pitbull", Breed),
+    # Breed = gsub("[Ll]ab|Labrador",
+    #             "dog_labrador", Breed),
+    
+    Breed = sub("husky", "dog", Breed, ignore.case = T),
+    Breed = sub("pit[ ]?bull|Pittbull", "dog", Breed, ignore.case = T),
+    Breed = sub("^Lab.*", "dog", Breed, ignore.case = T),
+    Breed = sub("Chihuahua", "dog", Breed, ignore.case = T),
+    Breed = sub("Shih Tzu|pug|Shiba Inu|Pomeranian", "dog", Breed, ignore.case = T),
+    Breed = sub("^dog.*", "dog", Breed, ignore.case = T),
+    Breed = sub(".*dog$", "dog", Breed, ignore.case = T),
+    Breed = sub(".*pup.*", "dog", Breed, ignore.case = T),
+    Breed = sub(".*pom*", "dog", Breed, ignore.case = T),
+    
+    Breed = sub("^cat.*", "cat", Breed, ignore.case = T),
+    Breed = sub(".*cat$", "cat", Breed, ignore.case = T),
+    Breed = sub(".*tabby*", "cat", Breed, ignore.case = T),
+    Breed = ifelse(grepl("cat", Breed, ignore.case = T), "cat", Breed)
+    
+
+  ) %>% 
+  
+  
+  group_by(Breed) %>%
+  summarise(count = n()) %>%
+  arrange(count) %>%
+  #filter(grepl("cat", Breed, ignore.case = T)) %>%
+  data.frame()
+
+  # group_by(year, Breed) %>%
+  # summarise(count = n()) %>%
+  # {
+  #   ggplot(., aes(x = year, y = count, color = Breed)) +
+  #     geom_point() +
+  #     geom_line() +
+  #     scale_x_continuous(breaks = seq(min(.$year), max(.$year), 1)) +
+  #     theme(panel.grid.minor.x = element_blank()) +
+  #     labs(title = "Animals reported lost per year")
+  # }
+
+```
