@@ -115,7 +115,8 @@ lost_animals %>%
       geom_line() +
       scale_x_continuous(breaks = seq(min(.$year), max(.$year), 1)) +
       theme(panel.grid.minor.x = element_blank()) +
-      labs(title = "Animals reported lost per year")
+      labs(title = "Animals reported lost per year",
+           subtitle = "(to the Vancouver Animal Control Office)")
   }
 ggsave("/Users/csiu/repo/blog/img/figure/2017-05-14/lost.png", width=7, height=5)
 ```
