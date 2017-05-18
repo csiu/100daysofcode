@@ -1,0 +1,112 @@
+---
+title: "day82"
+author: "csiu"
+date: "May 17, 2017"
+output:
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+I asked Twitter how to plot maps in R and Rod suggested [Leaflet](http://rstudio.github.io/leaflet/).
+
+## Leaflet
+
+```{r}
+# install.packages("leaflet")
+library("leaflet")
+```
+
+From tinkering with the program, it is simple to use and it return pretty plots
+
+```{r}
+# Coordinates for Vancouver, BC
+lng <- -123.1207
+lat <- 49.2827
+
+# Draw map
+leaflet() %>%
+  setView(lng=lng, lat=lat, zoom = 11) %>%
+  addTiles()
+```
+
+You can do further modifications:
+
+```{r}
+leaflet() %>%
+  setView(lng=lng, lat=lat, zoom = 11) %>%
+  addTiles() %>%
+  
+  #addCircles(lng=lng, lat=lat, radius = 200, fill = F, color = "red") %>% 
+  #addMarkers(lng=lng, lat=lat, popup=popup) %>%
+  
+  # Make it black and white
+  addProviderTiles(providers$Stamen.Toner) 
+```
+
+## Mapping City-Owned property data
+
+City data from the [Vancouver Open Data Catalogue: City-Owned property data](http://data.vancouver.ca/datacatalogue/cityOwnedProperties.htm)
+
+```{r}
+library(rgdal)
+
+# Load data
+shp <- 
+  readOGR("../data/city_owned_properties_shp/city_owned_properties.shp",
+          layer = "city_owned_properties",
+          GDAL1_integer64_policy = TRUE)
+
+proj4string <- "+proj=utm +zone=10 +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs "
+
+longlat <- 
+  # Select xy columns
+  as.data.frame(shp) %>%
+  select(coords.x1, coords.x2) %>%
+  as.matrix() %>%
+  
+  # Convert between xy to long/lat
+  proj4::project(proj4string, inverse=TRUE) %>%
+  as.data.frame() %>%
+  rename(long=V1, lat=V2) %>%
+  tbl_df()
+
+# Join data
+(dat <- cbind(as.data.frame(shp), longlat)) %>%
+  head()
+```
+
+```{r}
+# Coordinates for Vancouver
+lng <- -123.1207
+lat <- 49.2827
+
+# Define palette
+city_properties <- 
+  c("CAPITAL FUND", "PROPERTY ENDOWMENT FUND", "Vancouver Public Housing Corp")
+pal <- colorFactor(
+  c("navy", "red", "green"),
+  domain = city_properties)
+
+# Draw map
+dat %>% head()
+leaflet(dat) %>%
+  setView(lng=lng, lat=lat, zoom=11) %>%
+  addTiles() %>%
+  addProviderTiles(providers$Stamen.TonerLite) %>%
+  addCircles(lng = ~long,
+             lat = ~lat,
+             weight = 1,
+             color = ~pal(TYPE),
+             stroke = FALSE,
+             fillOpacity = 0.5) %>%
+  addLegend("topright",
+            pal=pal,
+            values=city_properties,
+            title = "Property type",
+            opacity = 1)
+```
