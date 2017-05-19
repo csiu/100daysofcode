@@ -1,0 +1,113 @@
+---
+title: "day83.Rmd"
+author: "csiu"
+date: "May 18, 2017"
+output:
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(leaflet)
+```
+
+## Load Data
+
+Data: [Open Data Catalogue: Food Vendors](http://data.vancouver.ca/datacatalogue/foodVendors.htm)
+
+```{r}
+data_file <- "../data/street_food_vendors.csv"
+
+dat <- readr::read_csv(data_file)
+```
+
+## what are my columns?
+
+```{r}
+nrow(dat)
+
+# Number of unique variables per column
+apply(dat, 2, function(x){unique(x) %>% length()})
+```
+
+## Type of Businesses
+
+```{r}
+dat_groups <-
+  dat %>%
+  count(DESCRIPTION) %>%
+  filter(n > 1)
+
+# Plot
+dat_groups %>%
+  ggplot(aes(x = reorder(DESCRIPTION, n),
+             y = n)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("") +
+  labs(title = "Type of street food offered",
+       subtitle = "(Only food types with more than 1 businesses are shown)") +
+  scale_y_continuous(minor_breaks = seq(0,40,2)) +
+  coord_flip()
+```
+
+Most popular street food in Vancouver is hot dogs
+
+```{r}
+dat %>%
+  filter(DESCRIPTION == "Hot Dogs") %>%
+  count(BUSINESS_NAME) %>% 
+  ggplot(aes(x = reorder(BUSINESS_NAME, n),
+             y = n)) +
+  geom_bar(stat = "identity") +
+  xlab("") +
+  ylab("") +
+  labs(title = "Name of Hot Dog Business",
+       subtitle = "(Total 33 hot dog businesses)") +
+  scale_y_continuous(minor_breaks = seq(0,20)) +
+  coord_flip()
+  
+```
+
+```{r}
+# Coordinates for Vancouver, BC
+lng <- -123.1207
+lat <- 49.2827
+
+# Define palette/color
+pal <- colorFactor(c("red", "navy"), domain = c("Hot Dogs", "Other"))
+
+# Plot
+dat %>%
+  mutate(
+    group = ifelse(DESCRIPTION == "Hot Dogs", DESCRIPTION, "Other")
+    ) %>%
+  leaflet() %>%
+  setView(lng=lng, lat=lat-.03, zoom=12) %>%
+  addProviderTiles(providers$OpenMapSurfer.Grayscale) %>%
+  addCircles(lng = ~LON,
+             lat = ~LAT,
+             weight = 1,
+             radius = 60,
+             color = ~pal(group),
+             stroke = FALSE,
+             fillOpacity = 0.6) %>%
+  addLegend("topright",
+            pal=pal,
+            values=c("Hot Dogs", "Other"),
+            title = "Property type",
+            opacity = 0.6)
+  #addMarkers(~LON, ~LAT, label = ~htmltools::htmlEscape(~BUSINESS_NAME))
+```
+
+THe lone business in the south:
+
+```{r}
+dat %>% arrange(LAT) %>% head(1) %>% data.frame()
+```
