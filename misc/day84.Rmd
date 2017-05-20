@@ -1,0 +1,31 @@
+---
+title: "A Book"
+author: "csiu"
+site: bookdown::bookdown_site
+documentclass: book
+output:
+  bookdown::gitbook: default
+  bookdown::pdf_book: default
+---
+
+# Hello World
+
+This is the index file!
+
+# Chapter 2
+
+*Chapter 2 already?*
+
+## Subsection
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas condimentum ultricies maximus. Nam in ante tempor, commodo quam eget, bibendum erat. Sed convallis quam eget orci rutrum interdum. Donec purus tortor, mollis eu lectus in, iaculis dictum orci. Vivamus a odio augue. Sed posuere eleifend arcu, et vestibulum augue varius a. Suspendisse ut finibus odio.
+
+Duis dolor sem, sodales in interdum sit amet, fringilla id tortor. Nam non sapien et nulla fringilla ultricies. Nulla ac augue ut nibh dapibus convallis. Aenean at purus ante. Nunc vulputate nisl sit amet congue ultricies. Sed pharetra tristique nunc, sed commodo libero. Cras ut nulla lectus.
+
+### Subsubsection
+
+Quisque dapibus ex velit, vel cursus urna ultricies non. Quisque fermentum orci id pellentesque porta. Donec ultricies in quam at mollis. In id risus mi. Duis ultrices eros et odio convallis tincidunt. Mauris faucibus gravida eros, eu congue dolor rhoncus posuere. Vivamus aliquam orci non leo accumsan pulvinar. Suspendisse potenti. Ut vitae varius sem, vel auctor leo. Aliquam tortor orci, imperdiet quis interdum condimentum, convallis vitae ipsum.
+
+# Simple stuff
+
+Lorem ipsum dolor sit amet, ut tractatos accommodare sit, decore putent te pro, sint adhuc nostrum mel ut. Prima mazim mei ex. Sit enim molestiae consetetur ea, ignota omnium an vix, eos et nisl alienum argumentum. Ne sea sumo dictas causae. Vix no porro putant bonorum, quo quas choro essent cu.
